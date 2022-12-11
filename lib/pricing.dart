@@ -1,20 +1,22 @@
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+
 import 'package:bitcoin_ticker/coins.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'dart:io' show Platform;
 
 class PriceScreen extends StatefulWidget {
-  const PriceScreen({Key? key}) : super(key: key);
+  PriceScreen({Key? key, this.data}) : super(key: key);
+  var data;
 
   @override
   State<PriceScreen> createState() => _PriceScreenState();
 }
 
 class _PriceScreenState extends State<PriceScreen> {
-
-  
-  getDropDownButton() {
-    String? currencies;
+  String? currencies;
+  getAndroidButton() {
     List<DropdownMenuItem<String>> items = [];
     for (var i in currenciesList) {
       currencies = i;
@@ -24,7 +26,6 @@ class _PriceScreenState extends State<PriceScreen> {
       );
       items.add(newItem);
     }
-
     return DropdownButton<String>(
         value: selectedCurrency,
         items: items,
@@ -40,7 +41,7 @@ class _PriceScreenState extends State<PriceScreen> {
     if (Platform.isIOS) {
       return getIosPicker();
     } else if (Platform.isAndroid) {
-      return getDropDownButton();
+      return getAndroidButton();
     }
   }
 
@@ -62,37 +63,74 @@ class _PriceScreenState extends State<PriceScreen> {
   String? selectedValue;
 
   String selectedCurrency = 'USD';
+  String? btcvalue;
+
+  CoinData coinData = CoinData();
+
   @override
-  Widget build(BuildContext context) {
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    getData();
+  }
+
+  getData() async {
+    var url = Uri.parse('$apilink/BTC/USD?apikey=$apikey');
+    final response = await http.get(url);
+
+    if (response.statusCode == 200) {
+      var json = jsonDecode(response.body);
+      print(response.body.toString());
+
+      return ApiModel.fromJson(json);
+    }
+  }
+
+  @override
+  Widget build(context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('🤑 Coin Ticker'),
+        title: const Text(
+          'Coin Ticker',
+          textAlign: TextAlign.center,
+        ),
       ),
       body: Column(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
-          Padding(
-            padding: const EdgeInsets.fromLTRB(18.0, 18.0, 18.0, 0),
-            child: Card(
-              color: Colors.lightBlueAccent,
-              elevation: 5.0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10.0),
-              ),
-              child: const Padding(
-                padding: EdgeInsets.symmetric(vertical: 15.0, horizontal: 28.0),
-                child: Text(
-                  '1 BTC = ? USD',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 20.0,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-            ),
-          ),
+          FutureBuilder(
+              future: getData(),
+              builder: (context, snapshot) {
+                return ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: 1,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemBuilder: (context, index) {
+                      return Padding(
+                        padding: const EdgeInsets.fromLTRB(18.0, 18.0, 18.0, 0),
+                        child: Card(
+                          color: Colors.blue,
+                          elevation: 5.0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10.0),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                                vertical: 15.0, horizontal: 28.0),
+                            child: Text(
+                             snapshot.data![index].toString(),
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                fontSize: 20.0,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    });
+              }),
           Container(
             height: 80.0,
             alignment: Alignment.center,
