@@ -1,14 +1,14 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-
 import 'package:bitcoin_ticker/coins.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'dart:io' show Platform;
 
 class PriceScreen extends StatefulWidget {
-  PriceScreen({Key? key, this.data}) : super(key: key);
-  var data;
+  PriceScreen({
+    Key? key,
+  }) : super(key: key);
 
   @override
   State<PriceScreen> createState() => _PriceScreenState();
@@ -64,8 +64,20 @@ class _PriceScreenState extends State<PriceScreen> {
 
   String selectedCurrency = 'USD';
   String? btcvalue;
+  String? time;
+  String? assetidbase;
+  String? rate;
 
-  CoinData coinData = CoinData();
+  Future getData() async {
+    final response = await http.get(Uri.parse(
+        'https://rest.coinapi.io/v1/exchangerate/BTC/USD?apikey=A5F367B6-30C4-4DE4-B596-DCDC488DE7E1'));
+    final data = jsonDecode(response.body);
+    setState(() {
+      time = data["time"];
+      assetidbase = data['asset_id_base'];
+      rate = data['rate'];
+    });
+  }
 
   @override
   void initState() {
@@ -74,20 +86,9 @@ class _PriceScreenState extends State<PriceScreen> {
     getData();
   }
 
-  getData() async {
-    var url = Uri.parse('$apilink/BTC/USD?apikey=$apikey');
-    final response = await http.get(url);
-
-    if (response.statusCode == 200) {
-      var json = jsonDecode(response.body);
-      print(response.body.toString());
-
-      return ApiModel.fromJson(json);
-    }
-  }
-
   @override
   Widget build(context) {
+    getData();
     return Scaffold(
       appBar: AppBar(
         title: const Text(
@@ -99,38 +100,45 @@ class _PriceScreenState extends State<PriceScreen> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
-          FutureBuilder(
-              future: getData(),
-              builder: (context, snapshot) {
-                return ListView.builder(
-                    shrinkWrap: true,
-                    itemCount: 1,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemBuilder: (context, index) {
-                      return Padding(
-                        padding: const EdgeInsets.fromLTRB(18.0, 18.0, 18.0, 0),
-                        child: Card(
-                          color: Colors.blue,
-                          elevation: 5.0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10.0),
-                          ),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                                vertical: 15.0, horizontal: 28.0),
-                            child: Text(
-                             snapshot.data![index].toString(),
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(
-                                fontSize: 20.0,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ),
-                        ),
-                      );
-                    });
-              }),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(18.0, 18.0, 18.0, 0),
+            child: Card(
+              color: Colors.blue,
+              elevation: 5.0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10.0),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                    vertical: 15.0, horizontal: 28.0),
+                child: Row(
+                  children: [
+                    Text(
+                      // snapshot.data![index].toString(),''
+                      //  textAlign: TextAlign.center,
+                      rate.toString(),
+                      style: const TextStyle(
+                        fontSize: 20.0,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(
+                      width: 12,
+                    ),
+                    Text(
+                      // snapshot.data![index].toString(),''
+                      //  textAlign: TextAlign.center,
+                      assetidbase.toString(),
+                      style: const TextStyle(
+                        fontSize: 20.0,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
           Container(
             height: 80.0,
             alignment: Alignment.center,
@@ -141,5 +149,30 @@ class _PriceScreenState extends State<PriceScreen> {
         ],
       ),
     );
+  }
+}
+
+class ExchangeModel {
+  String? time;
+  String? assetIdBase;
+  String? assetIdQuote;
+  double? rate;
+
+  ExchangeModel({this.time, this.assetIdBase, this.assetIdQuote, this.rate});
+
+  ExchangeModel.fromJson(Map<String, dynamic> json) {
+    time = json['time'];
+    assetIdBase = json['asset_id_base'];
+    assetIdQuote = json['asset_id_quote'];
+    rate = json['rate'];
+  }
+
+  Map<String, dynamic> toJson() {
+    final Map<String, dynamic> data = new Map<String, dynamic>();
+    data['time'] = time;
+    data['asset_id_base'] = assetIdBase;
+    data['asset_id_quote'] = assetIdQuote;
+    data['rate'] = rate;
+    return data;
   }
 }
